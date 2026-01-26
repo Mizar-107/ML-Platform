@@ -1,0 +1,175 @@
+# Milvus Helm Values
+# Chart: milvus/milvus
+# https://github.com/milvus-io/milvus-helm
+
+# Cluster mode for distributed deployment
+cluster:
+  enabled: true
+
+# Image configuration
+image:
+  repository: milvusdb/milvus
+  tag: v2.4.5
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 19530
+  annotations: {}
+
+# Standalone mode (disabled for cluster mode)
+standalone:
+  enabled: false
+
+# Proxy configuration
+proxy:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Root coordinator
+rootCoordinator:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Query coordinator
+queryCoordinator:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Query node (handles vector searches)
+queryNode:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# Data coordinator
+dataCoordinator:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Data node (handles data ingestion)
+dataNode:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# Index coordinator
+indexCoordinator:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Index node (handles index building)
+indexNode:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# etcd configuration (metadata storage)
+etcd:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# MinIO configuration (object storage for vectors)
+minio:
+  enabled: true
+  mode: standalone
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  # Default credentials (change in production)
+  accessKey: minioadmin
+  secretKey: minioadmin
+
+# Pulsar configuration (message queue)
+pulsar:
+  enabled: true
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 20Gi
+  resources:
+    broker:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+
+# Log configuration
+log:
+  level: info
+  persistence:
+    enabled: false

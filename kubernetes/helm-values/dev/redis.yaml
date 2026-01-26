@@ -1,0 +1,124 @@
+# Redis Helm Values
+# Chart: bitnami/redis
+# https://github.com/bitnami/charts/tree/main/bitnami/redis
+
+# Architecture: replication with Sentinel for HA
+architecture: replication
+
+# Authentication
+auth:
+  enabled: true
+  # Default password (use ExternalSecret in production)
+  password: "redis-password-change-me"
+
+# Sentinel configuration for automatic failover
+sentinel:
+  enabled: true
+  masterSet: mymaster
+  quorum: 2
+  
+  # Sentinel resources
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Master configuration
+master:
+  count: 1
+  
+  # Resources for dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 8Gi
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    ports:
+      redis: 6379
+
+# Replica configuration
+replica:
+  replicaCount: 2
+  
+  # Resources for dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 8Gi
+  
+  # Autoscaling (disabled for dev)
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPU: 80
+
+# Metrics exporter
+metrics:
+  enabled: true
+  
+  # Prometheus integration
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# Pod labels
+commonLabels:
+  app: redis
+  component: cache
+
+# Network policy (disabled for dev)
+networkPolicy:
+  enabled: false
+
+# RBAC
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+
+# Security context
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsNonRoot: true

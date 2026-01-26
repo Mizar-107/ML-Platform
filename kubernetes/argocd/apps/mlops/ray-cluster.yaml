@@ -1,0 +1,38 @@
+# Ray Cluster ArgoCD Application
+# Deploys a Ray cluster for distributed computing
+# Requires KubeRay operator to be deployed first (sync-wave: 10)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ray-cluster
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    - repoURL: https://ray-project.github.io/kuberay-helm
+      chart: ray-cluster
+      targetRevision: 1.2.2
+      helm:
+        releaseName: ray-cluster
+        valueFiles:
+          - $values/ML-Platform/kubernetes/helm-values/dev/ray-cluster.yaml
+    - repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+      targetRevision: HEAD
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ray-system
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

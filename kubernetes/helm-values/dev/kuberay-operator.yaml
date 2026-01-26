@@ -1,0 +1,48 @@
+# KubeRay Operator Helm Values
+# Chart: ray-project/kuberay-operator
+# https://github.com/ray-project/kuberay/tree/master/helm-chart/kuberay-operator
+
+# Operator image
+image:
+  repository: quay.io/kuberay/operator
+  tag: v1.2.2
+  pullPolicy: IfNotPresent
+
+# Resource limits for dev environment
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Operator configurations
+batchScheduler:
+  enabled: false  # Enable for Volcano gang scheduling
+
+# Enable leader election for HA
+leaderElection:
+  enabled: true
+
+# ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitoring
+
+# RBAC
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+  name: kuberay-operator
+
+# Logging
+logging:
+  level: info
+
+# Watch all namespaces
+watchNamespace: ""

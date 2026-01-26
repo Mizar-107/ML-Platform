@@ -1,0 +1,10 @@
+# Milvus Namespace
+# Hosts Milvus vector database components
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: milvus
+  labels:
+    app.kubernetes.io/name: milvus
+    app.kubernetes.io/part-of: mlops
+    istio-injection: enabled

@@ -1,0 +1,10 @@
+# Data Namespace
+# Hosts Redis and other data services
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: data
+  labels:
+    app.kubernetes.io/name: data
+    app.kubernetes.io/part-of: mlops
+    istio-injection: enabled

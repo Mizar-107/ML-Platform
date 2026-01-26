@@ -101,8 +101,8 @@ make deploy-dev
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 1. Foundation | VPC, EKS, S3, IAM | 🔄 In Progress |
-| 2. Platform Services | ArgoCD, Istio, Monitoring | ⬜ Pending |
-| 3. Data Infrastructure | Ray, Milvus, Redis | ⬜ Pending |
+| 2. Platform Services | ArgoCD, Istio, Monitoring | ✅ Complete |
+| 3. Data Infrastructure | Ray, Milvus, Redis | ✅ Complete |
 | 4. Training Infrastructure | Kubeflow, MLflow | ⬜ Pending |
 | 5. Data Pipeline | Ingestion, Embedding | ⬜ Pending |
 | 6. Training Pipeline | LoRA Fine-tuning | ⬜ Pending |

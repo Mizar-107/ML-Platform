@@ -1,0 +1,10 @@
+# Ray System Namespace
+# Hosts Ray cluster components
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ray-system
+  labels:
+    app.kubernetes.io/name: ray
+    app.kubernetes.io/part-of: mlops
+    istio-injection: enabled

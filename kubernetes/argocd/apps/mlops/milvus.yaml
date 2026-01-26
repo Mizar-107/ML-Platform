@@ -1,0 +1,37 @@
+# Milvus Vector Database ArgoCD Application
+# Deploys Milvus in distributed mode for vector storage
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: milvus
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    - repoURL: https://zilliztech.github.io/milvus-helm
+      chart: milvus
+      targetRevision: 4.2.0
+      helm:
+        releaseName: milvus
+        valueFiles:
+          - $values/ML-Platform/kubernetes/helm-values/dev/milvus.yaml
+    - repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+      targetRevision: HEAD
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: milvus
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
