@@ -1,0 +1,83 @@
+# cert-manager Helm Values
+# Chart: jetstack/cert-manager
+# https://cert-manager.io/docs/installation/helm/
+
+# Install CRDs with Helm
+installCRDs: true
+
+# Replica count (1 for dev)
+replicaCount: 1
+
+# Resource limits
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Prometheus metrics
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+    namespace: monitoring
+    labels:
+      release: monitoring
+
+# Webhook configuration
+webhook:
+  replicaCount: 1
+  
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# CA Injector
+cainjector:
+  enabled: true
+  replicaCount: 1
+  
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+
+# Startup API Check
+startupapicheck:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+# Global settings
+global:
+  leaderElection:
+    namespace: cert-manager
+
+# Pod security context
+securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true

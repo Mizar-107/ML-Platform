@@ -1,0 +1,79 @@
+# Istio Helm Values (istiod)
+# Chart: istio/istiod
+# https://istio.io/latest/docs/setup/install/helm/
+
+# Global settings
+global:
+  # Logging level
+  logging:
+    level: default:info
+  
+  # Proxy settings
+  proxy:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    
+    # Access logging
+    accessLogFile: /dev/stdout
+    accessLogFormat: |
+      [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%" %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+  
+  # mTLS settings
+  mtls:
+    enabled: true
+    auto: true
+
+# Pilot (istiod) settings
+pilot:
+  autoscaleEnabled: false  # Disable for dev
+  replicaCount: 1
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Tracing configuration
+  traceSampling: 100.0  # 100% for dev, reduce in prod
+  
+  # Enable status
+  env:
+    PILOT_ENABLE_STATUS: "true"
+
+# Mesh configuration
+meshConfig:
+  # Enable access logging
+  accessLogFile: /dev/stdout
+  
+  # Default mTLS mode
+  defaultConfig:
+    holdApplicationUntilProxyStarts: true
+    proxyMetadata:
+      ISTIO_META_DNS_CAPTURE: "true"
+      ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+  
+  # Outbound traffic policy
+  outboundTrafficPolicy:
+    mode: ALLOW_ANY
+  
+  # Enable auto mTLS
+  enableAutoMtls: true
+  
+  # Tracing configuration (Jaeger can be added later)
+  enableTracing: true
+
+# Telemetry settings
+telemetry:
+  enabled: true
+  v2:
+    enabled: true
+    prometheus:
+      enabled: true

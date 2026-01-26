@@ -1,0 +1,79 @@
+# Platform and MLOps Namespace Definitions
+# These namespaces organize the platform services and MLOps workloads
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: service-mesh
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: observability
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: security
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-secrets
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: secrets
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-system
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: mlops-core
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-data
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: data-processing
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-training
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: training
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-serving
+  labels:
+    app.kubernetes.io/part-of: llm-mlops
+    app.kubernetes.io/component: inference
+    istio-injection: enabled

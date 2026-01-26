@@ -1,0 +1,164 @@
+# ArgoCD Helm Values
+# Chart: argo/argo-cd
+# https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+
+global:
+  # Use cluster domain for internal DNS
+  domain: argocd.local
+
+# Server configuration
+server:
+  replicas: 1  # Single replica for dev, increase for HA in prod
+  
+  # Resource limits for dev environment
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Ingress configuration (Istio VirtualService preferred)
+  ingress:
+    enabled: false
+  
+  # Extra args for insecure mode (behind Istio mTLS)
+  extraArgs:
+    - --insecure
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    servicePortHttp: 80
+    servicePortHttps: 443
+
+# Controller configuration
+controller:
+  replicas: 1
+  
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  # Metrics for Prometheus
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+
+# Repo server configuration
+repoServer:
+  replicas: 1
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Application Set controller
+applicationSet:
+  enabled: true
+  replicas: 1
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Notifications controller
+notifications:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# Redis configuration (using built-in)
+redis:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Dex (OIDC provider) - disabled, use direct auth
+dex:
+  enabled: false
+
+# RBAC configuration
+configs:
+  # ConfigMap settings
+  cm:
+    # Admin account enabled
+    admin.enabled: "true"
+    
+    # Timeout settings
+    timeout.reconciliation: 180s
+    
+    # Resource tracking
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Healthy"
+      hs.message = ""
+      if obj.status ~= nil then
+        if obj.status.health ~= nil then
+          hs.status = obj.status.health.status
+          if obj.status.health.message ~= nil then
+            hs.message = obj.status.health.message
+          end
+        end
+      end
+      return hs
+    
+    # Kustomize build options
+    kustomize.buildOptions: --load-restrictor LoadRestrictionsNone
+  
+  # RBAC policies
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, logs, get, *, allow
+      p, role:admin, exec, create, */*, allow
+      g, admin, role:admin
+  
+  # Repository credentials (add via ExternalSecrets in production)
+  credentialTemplates: {}
+  
+  # Known hosts for SSH
+  ssh:
+    knownHosts: |
+      github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+      github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+
+# High Availability settings (disabled for dev)
+# Enable these in production overlays
+# controller:
+#   replicas: 2
+# server:
+#   replicas: 2
+# repoServer:
+#   replicas: 2
