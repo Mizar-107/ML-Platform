@@ -1,0 +1,7 @@
+# MLflow Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlflow
+  labels:
+    istio-injection: enabled

@@ -126,6 +126,15 @@ kubernetes/
 | Milvus | milvus | Vector database |
 | Redis | data | Caching layer |
 
+### Phase 4: Training Infrastructure
+
+| Service | Namespace | Purpose |
+|---------|-----------|---------|
+| MLflow | mlflow | Experiment tracking & model registry |
+| Training Operator | training-operator-system | PyTorchJob/TFJob CRDs |
+| Volcano | volcano-system | Gang scheduling |
+| Kubeflow Pipelines | kubeflow | ML workflow orchestration |
+
 ## Sync-Wave Order
 
 ArgoCD sync-waves ensure dependencies deploy in order:
@@ -140,4 +149,8 @@ ArgoCD sync-waves ensure dependencies deploy in order:
 | 10 | KubeRay Operator |
 | 11 | Ray Cluster |
 | 12 | Milvus, Redis |
+| 13 | MLflow |
+| 14 | Training Operator, Volcano |
+| 15 | Kubeflow Pipelines |
+
 

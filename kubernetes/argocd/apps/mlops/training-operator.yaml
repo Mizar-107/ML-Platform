@@ -1,0 +1,38 @@
+# Kubeflow Training Operator ArgoCD Application
+# Deploys Training Operator for PyTorchJob, TFJob, and other ML training CRDs
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: training-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "14"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    # Kubeflow Training Operator uses OCI chart
+    - repoURL: ghcr.io/kubeflow/charts
+      chart: kubeflow-trainer
+      targetRevision: 2.1.0
+      helm:
+        releaseName: training-operator
+        valueFiles:
+          - $values/ML-Platform/kubernetes/helm-values/dev/training-operator.yaml
+    - repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+      targetRevision: HEAD
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: training-operator-system
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

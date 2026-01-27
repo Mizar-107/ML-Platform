@@ -1,0 +1,86 @@
+# Volcano Scheduler Helm Values
+# Chart: volcano-sh/volcano
+# https://github.com/volcano-sh/volcano
+
+# Basic configuration
+basic:
+  # Image configuration
+  image_pull_policy: IfNotPresent
+
+# Scheduler configuration
+scheduler:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Controller configuration
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Admission controller configuration
+admission:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Custom resource definitions
+custom:
+  # Enable scheduling plugins
+  plugins:
+    # Gang scheduling - wait for all pods in a group
+    - name: gang
+      enabled: true
+    # Priority scheduling
+    - name: priority
+      enabled: true
+    # DRF (Dominant Resource Fairness)
+    - name: drf
+      enabled: true
+    # Binpack scheduling
+    - name: binpack
+      enabled: true
+    # Node order scoring
+    - name: nodeorder
+      enabled: true
+
+# Metrics configuration
+metrics:
+  enabled: true
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

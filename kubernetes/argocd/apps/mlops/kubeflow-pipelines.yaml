@@ -1,0 +1,38 @@
+# Kubeflow Pipelines ArgoCD Application
+# Deploys full Kubeflow Pipelines for ML workflow orchestration
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubeflow-pipelines
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    - repoURL: https://getindata.github.io/kubeflow-pipelines/
+      chart: kubeflow-pipelines
+      targetRevision: 1.10.0
+      helm:
+        releaseName: kubeflow-pipelines
+        valueFiles:
+          - $values/ML-Platform/kubernetes/helm-values/dev/kubeflow-pipelines.yaml
+    - repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+      targetRevision: HEAD
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubeflow
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true

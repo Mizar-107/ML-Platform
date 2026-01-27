@@ -1,0 +1,37 @@
+# Volcano Scheduler ArgoCD Application
+# Deploys Volcano for gang scheduling and batch workloads
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: volcano
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "14"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    - repoURL: https://volcano-sh.github.io/charts
+      chart: volcano
+      targetRevision: 1.10.0
+      helm:
+        releaseName: volcano
+        valueFiles:
+          - $values/ML-Platform/kubernetes/helm-values/dev/volcano.yaml
+    - repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+      targetRevision: HEAD
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: volcano-system
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

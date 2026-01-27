@@ -1,0 +1,106 @@
+# MLflow Helm Values
+# Chart: bitnami/mlflow
+# https://github.com/bitnami/charts/tree/main/bitnami/mlflow
+
+# Tracking server configuration
+tracking:
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 5000
+  
+  # Resource limits for dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Authentication (disabled for dev)
+  auth:
+    enabled: false
+
+# Run server configuration (experiment runs)
+run:
+  enabled: true
+
+# PostgreSQL backend store
+postgresql:
+  enabled: true
+  auth:
+    username: mlflow
+    password: mlflow-secret
+    database: mlflow
+  primary:
+    persistence:
+      enabled: true
+      storageClass: gp3
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# MinIO for artifact storage (alternative to S3)
+# For production, use AWS S3 with IRSA
+minio:
+  enabled: true
+  mode: standalone
+  auth:
+    rootUser: mlflow
+    rootPassword: mlflow-secret
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# External S3 configuration (uncomment for production)
+# externalS3:
+#   host: s3.amazonaws.com
+#   port: 443
+#   useCredentialsInSecret: false
+#   bucket: llm-mlops-dev-mlflow-artifacts
+#   protocol: https
+
+# Image configuration
+image:
+  registry: docker.io
+  repository: bitnami/mlflow
+  tag: 2.16.2-debian-12-r0
+  pullPolicy: IfNotPresent
+
+# ServiceMonitor for Prometheus
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+    interval: 30s
+
+# Common annotations
+commonAnnotations:
+  app.kubernetes.io/part-of: mlops-platform
+
+# Pod security context
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+
+# Container security context
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsNonRoot: true

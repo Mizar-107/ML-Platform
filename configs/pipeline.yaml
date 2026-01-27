@@ -1,0 +1,67 @@
+# Data Pipeline Configuration
+# Default configuration for document ingestion, embedding, and storage
+
+# Source Configuration
+source:
+  # S3 path or local directory
+  path: "s3://my-bucket/documents/"
+  # Alternative: local path
+  # path: "./data/documents"
+  
+  # Explicit S3 bucket (optional if in path)
+  # bucket: "my-bucket"
+
+# Chunking Configuration
+chunking:
+  # Strategy: "semantic" or "fixed"
+  strategy: "semantic"
+  
+  # Target chunk size in characters
+  chunk_size: 512
+  
+  # Overlap between chunks (for fixed) or minimum size (for semantic)
+  chunk_overlap: 50
+
+# Embedding Configuration
+embedding:
+  # Model type: "sentence-transformer" or "huggingface"
+  model_type: "sentence-transformer"
+  
+  # Model name/path
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  
+  # Batch size for embedding generation
+  batch_size: 32
+  
+  # Use Ray for distributed embedding
+  use_ray: false
+  
+  # Number of Ray workers (if use_ray is true)
+  ray_num_workers: 4
+
+# Storage Configuration (Milvus)
+storage:
+  # Milvus host
+  host: "milvus.milvus.svc.cluster.local"
+  
+  # Milvus port
+  port: 19530
+  
+  # Collection name
+  collection: "documents"
+
+# Pipeline Options
+pipeline:
+  # Dry run mode (no storage)
+  dry_run: false
+  
+  # Skip already processed documents
+  skip_existing: true
+
+# Environment-specific overrides
+# These can be set via environment variables:
+#   PIPELINE_SOURCE_PATH
+#   PIPELINE_MILVUS_HOST
+#   PIPELINE_MILVUS_PORT
+#   PIPELINE_COLLECTION_NAME
+#   PIPELINE_EMBEDDING_MODEL

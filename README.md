@@ -103,8 +103,8 @@ make deploy-dev
 | 1. Foundation | VPC, EKS, S3, IAM | 🔄 In Progress |
 | 2. Platform Services | ArgoCD, Istio, Monitoring | ✅ Complete |
 | 3. Data Infrastructure | Ray, Milvus, Redis | ✅ Complete |
-| 4. Training Infrastructure | Kubeflow, MLflow | ⬜ Pending |
-| 5. Data Pipeline | Ingestion, Embedding | ⬜ Pending |
+| 4. Training Infrastructure | Kubeflow, MLflow | ✅ Complete |
+| 5. Data Pipeline | Ingestion, Embedding | ✅ Complete |
 | 6. Training Pipeline | LoRA Fine-tuning | ⬜ Pending |
 | 7. Serving Infrastructure | vLLM, KServe | ⬜ Pending |
 | 8. Integration | E2E Testing, Hardening | ⬜ Pending |

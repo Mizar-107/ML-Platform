@@ -20,7 +20,7 @@ USER pipeline
 WORKDIR /home/pipeline
 
 # Install Python packages
-COPY --chown=pipeline:pipeline requirements.txt .
+COPY --chown=pipeline:pipeline docker/pipeline-components/requirements.txt ./requirements.txt
 
 RUN pip install --user --upgrade pip && \
     pip install --user -r requirements.txt
@@ -28,6 +28,7 @@ RUN pip install --user --upgrade pip && \
 # Copy source code
 COPY --chown=pipeline:pipeline src/ ./src/
 COPY --chown=pipeline:pipeline pipelines/ ./pipelines/
+COPY --chown=pipeline:pipeline configs/ ./configs/
 
 # Set Python path
 ENV PATH="/home/pipeline/.local/bin:${PATH}" \

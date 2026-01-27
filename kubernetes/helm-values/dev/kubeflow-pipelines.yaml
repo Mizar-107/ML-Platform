@@ -1,0 +1,180 @@
+# Kubeflow Pipelines Helm Values
+# Chart: getindata/kubeflow-pipelines
+# https://github.com/getindata/kubeflow-pipelines-helm
+
+# Pipeline API server
+api:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Pipeline UI
+ui:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# Persistence agent
+persistenceagent:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Scheduled workflow controller
+scheduledworkflow:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Viewer controller
+viewercontroller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Visualization server
+visualizationserver:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# MySQL for metadata storage
+mysql:
+  enabled: true
+  auth:
+    rootPassword: kubeflow-secret
+    database: pipelines
+    username: pipelines
+    password: pipelines-secret
+  primary:
+    persistence:
+      enabled: true
+      storageClass: gp3
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# MinIO for artifact storage
+minio:
+  enabled: true
+  mode: standalone
+  auth:
+    rootUser: minio
+    rootPassword: minio-secret
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Argo Workflows configuration (KFP V2 backend)
+argo:
+  # Resource limits for workflow controller
+  controller:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  
+  # Workflow executor
+  executor:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+# Cache server
+cache:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Metadata service (ML Metadata)
+metadata:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+
+# Authentication configuration (disabled for dev)
+auth:
+  enabled: false
+
+# Multi-user mode
+multiUser:
+  enabled: false
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/part-of: mlops-platform
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

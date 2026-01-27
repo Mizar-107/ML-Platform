@@ -1,0 +1,71 @@
+# Kubeflow Training Operator Helm Values
+# Chart: kubeflow-trainer (OCI)
+# https://github.com/kubeflow/training-operator
+
+# Controller configuration
+controller:
+  # Resource limits for dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Number of replicas
+  replicas: 1
+  
+  # Leader election
+  leaderElection:
+    enabled: true
+
+# Webhook configuration
+webhook:
+  enabled: true
+  port: 9443
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8080
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+    interval: 30s
+
+# CRDs to install
+# PyTorchJob, TFJob, MXJob, XGBoostJob, MPIJob, PaddleJob
+crds:
+  install: true
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+  name: training-operator
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Node selector (optional)
+nodeSelector: {}
+
+# Tolerations (optional)
+tolerations: []
+
+# Affinity (optional)
+affinity: {}
