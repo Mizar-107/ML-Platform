@@ -1,0 +1,129 @@
+# LiteLLM Configuration Values
+# Reference for Kubernetes deployment
+
+# Image configuration
+image:
+  repository: ghcr.io/berriai/litellm
+  tag: main-v1.56.3
+  pullPolicy: IfNotPresent
+
+# Replica count
+replicas: 2
+
+# Resource limits
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 4000
+
+# Ingress (optional - use Istio VirtualService instead)
+ingress:
+  enabled: false
+
+# LiteLLM proxy configuration
+config:
+  # Model routing configuration
+  model_list:
+    # Local vLLM model (KServe InferenceService)
+    - model_name: "mistral-7b"
+      litellm_params:
+        model: "openai/mistral-7b-instruct"
+        api_base: "http://mistral-7b-instruct-predictor.serving.svc.cluster.local:8000/v1"
+        api_key: "not-needed"  # Internal service
+      model_info:
+        max_tokens: 8192
+        input_cost_per_token: 0.0
+        output_cost_per_token: 0.0
+    
+    # Additional vLLM model example
+    - model_name: "llama-7b"
+      litellm_params:
+        model: "openai/llama-2-7b-chat"
+        api_base: "http://llama-7b-chat-predictor.serving.svc.cluster.local:8000/v1"
+        api_key: "not-needed"
+      model_info:
+        max_tokens: 4096
+        input_cost_per_token: 0.0
+        output_cost_per_token: 0.0
+    
+    # OpenAI fallback (optional)
+    # - model_name: "gpt-4"
+    #   litellm_params:
+    #     model: "gpt-4"
+    #     api_key: "os.environ/OPENAI_API_KEY"
+  
+  # Router settings
+  router_settings:
+    routing_strategy: "least-busy"  # Options: simple-shuffle, least-busy, latency-based
+    num_retries: 3
+    timeout: 120
+    retry_after: 5
+    fallbacks:
+      - mistral-7b: ["llama-7b"]
+  
+  # Rate limiting
+  general_settings:
+    master_key: "sk-litellm-master-key"  # Change in production
+    database_connection_pool_limit: 100
+    max_budget: 1000.0  # Max spend limit
+    budget_duration: "30d"
+
+# Redis for caching (use existing Redis cluster)
+redis:
+  enabled: true
+  host: redis-master.redis.svc.cluster.local
+  port: 6379
+  # password from secret
+
+# Prometheus metrics
+metrics:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+
+# Health checks
+health:
+  livenessPath: /health/liveliness
+  readinessPath: /health/readiness
+  startupPath: /health/readiness
+
+# Environment variables
+env:
+  - name: LITELLM_MODE
+    value: "PRODUCTION"
+  - name: LITELLM_LOG
+    value: "INFO"
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis-secret
+        key: redis-password
+        optional: true
+
+# Pod security
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: litellm
+          topologyKey: kubernetes.io/hostname

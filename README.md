@@ -105,8 +105,8 @@ make deploy-dev
 | 3. Data Infrastructure | Ray, Milvus, Redis | ✅ Complete |
 | 4. Training Infrastructure | Kubeflow, MLflow | ✅ Complete |
 | 5. Data Pipeline | Ingestion, Embedding | ✅ Complete |
-| 6. Training Pipeline | LoRA Fine-tuning | ⬜ Pending |
-| 7. Serving Infrastructure | vLLM, KServe | ⬜ Pending |
+| 6. Training Pipeline | LoRA Fine-tuning | ✅ Complete |
+| 7. Serving Infrastructure | vLLM, KServe | ✅ Complete |
 | 8. Integration | E2E Testing, Hardening | ⬜ Pending |
 
 ## Documentation

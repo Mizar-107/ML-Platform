@@ -1,0 +1,141 @@
+# vLLM ClusterServingRuntime for KServe
+# Defines the vLLM container spec for high-throughput LLM inference
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: kserve-vllm
+  labels:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+  
+  # Supported model formats
+  supportedModelFormats:
+    - name: pytorch
+      version: "1"
+      autoSelect: true
+    - name: huggingface
+      version: "1"
+      autoSelect: true
+  
+  # Multi-model serving disabled for LLMs
+  multiModel: false
+  
+  # Disable model mesh (single model per pod)
+  disabled: false
+  
+  # Protocol version
+  protocolVersions:
+    - v2
+    - grpc-v2
+  
+  # Container specification
+  containers:
+    - name: kserve-container
+      image: vllm/vllm-openai:v0.6.4.post1
+      
+      # Resource requirements for 7B models
+      resources:
+        requests:
+          cpu: "4"
+          memory: 16Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "8"
+          memory: 32Gi
+          nvidia.com/gpu: "1"
+      
+      # vLLM command with OpenAI-compatible API
+      command:
+        - python
+        - -m
+        - vllm.entrypoints.openai.api_server
+      
+      args:
+        - --host=0.0.0.0
+        - --port=8000
+        - --model=$(MODEL_NAME)
+        - --tensor-parallel-size=1
+        - --max-model-len=4096
+        - --gpu-memory-utilization=0.90
+        - --enforce-eager  # Disable CUDA graphs for flexibility
+        - --trust-remote-code
+      
+      # Environment variables
+      env:
+        - name: MODEL_NAME
+          value: "$(STORAGE_URI)"
+        - name: HF_HOME
+          value: /mnt/models/.cache/huggingface
+        - name: TRANSFORMERS_CACHE
+          value: /mnt/models/.cache/transformers
+        - name: VLLM_USAGE_STATS
+          value: "0"
+        # CUDA settings
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: NCCL_DEBUG
+          value: "WARN"
+      
+      # Ports
+      ports:
+        - containerPort: 8000
+          protocol: TCP
+          name: http
+      
+      # Probes
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 60
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 120
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 5
+      
+      # Volume mounts
+      volumeMounts:
+        - name: model-cache
+          mountPath: /mnt/models/.cache
+        - name: shm
+          mountPath: /dev/shm
+  
+  # Volumes
+  volumes:
+    - name: model-cache
+      emptyDir:
+        sizeLimit: 50Gi
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 16Gi
+  
+  # Affinity for GPU nodes
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: nvidia.com/gpu.present
+                operator: In
+                values:
+                  - "true"
+  
+  # Tolerations for GPU nodes
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule

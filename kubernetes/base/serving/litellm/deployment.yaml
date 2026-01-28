@@ -1,0 +1,178 @@
+# LiteLLM Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/component: proxy
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: litellm
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: litellm
+        app.kubernetes.io/name: litellm
+        app.kubernetes.io/component: proxy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: litellm
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm:main-v1.56.3
+          imagePullPolicy: IfNotPresent
+          
+          # Command with config file
+          args:
+            - --config
+            - /app/config/config.yaml
+            - --port
+            - "4000"
+            - --num_workers
+            - "4"
+          
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          
+          env:
+            - name: LITELLM_MODE
+              value: "PRODUCTION"
+            - name: LITELLM_LOG
+              value: "INFO"
+            - name: LITELLM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: master-key
+                  optional: true
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: redis-password
+                  optional: true
+            # Optional: External API keys
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: openai-api-key
+                  optional: true
+          
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1
+              memory: 1Gi
+          
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+          
+          livenessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          startupProbe:
+            httpGet:
+              path: /health/readiness
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      
+      volumes:
+        - name: config
+          configMap:
+            name: litellm-config
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: litellm
+                topologyKey: kubernetes.io/hostname
+      
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: litellm
+---
+# LiteLLM ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/part-of: mlops-platform
+---
+# LiteLLM Secrets (placeholder - use External Secrets in production)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: litellm-secrets
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/part-of: mlops-platform
+type: Opaque
+stringData:
+  master-key: "sk-litellm-dev-key"
+  redis-password: ""
+  openai-api-key: ""

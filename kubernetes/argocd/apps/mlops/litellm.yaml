@@ -1,0 +1,30 @@
+# LiteLLM ArgoCD Application
+# Deploys LiteLLM proxy gateway for unified LLM API access
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: litellm
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "16"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+    targetRevision: HEAD
+    path: ML-Platform/kubernetes/base/serving/litellm
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: litellm
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

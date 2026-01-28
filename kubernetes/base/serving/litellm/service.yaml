@@ -1,0 +1,104 @@
+# LiteLLM Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/component: proxy
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: litellm
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+---
+# LiteLLM ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/part-of: mlops-platform
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: litellm
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - litellm
+---
+# LiteLLM HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: litellm
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+---
+# LiteLLM PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: litellm

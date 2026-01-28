@@ -1,0 +1,15 @@
+# Default LiteLLM configuration for Docker build
+# This is a minimal config - full config is provided via Kubernetes ConfigMap
+
+model_list:
+  - model_name: "default"
+    litellm_params:
+      model: "openai/gpt-3.5-turbo"
+      api_base: "http://localhost:8000/v1"
+      api_key: "not-needed"
+
+general_settings:
+  master_key: "sk-litellm-default-key"
+
+litellm_settings:
+  telemetry: false

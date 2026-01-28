@@ -1,0 +1,96 @@
+# Sample InferenceService for vLLM
+# Deploy a 7B model (e.g., Mistral-7B-Instruct)
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: mistral-7b-instruct
+  namespace: serving
+  labels:
+    app.kubernetes.io/name: mistral-7b-instruct
+    app.kubernetes.io/part-of: mlops-platform
+  annotations:
+    # Prometheus scraping
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  predictor:
+    # Use vLLM runtime
+    model:
+      modelFormat:
+        name: huggingface
+      runtime: kserve-vllm
+      
+      # Model storage location
+      # Options:
+      # - HuggingFace: hf://mistralai/Mistral-7B-Instruct-v0.2
+      # - S3: s3://llm-mlops-dev-models/mistral-7b-instruct/
+      storageUri: "hf://mistralai/Mistral-7B-Instruct-v0.2"
+      
+      # Resource overrides for specific model
+      resources:
+        requests:
+          cpu: "4"
+          memory: 16Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "8"
+          memory: 32Gi
+          nvidia.com/gpu: "1"
+    
+    # Container overrides
+    containers:
+      - name: kserve-container
+        args:
+          - --host=0.0.0.0
+          - --port=8000
+          - --model=$(MODEL_NAME)
+          - --tensor-parallel-size=1
+          - --max-model-len=8192
+          - --gpu-memory-utilization=0.90
+          - --dtype=bfloat16
+          - --trust-remote-code
+        env:
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: huggingface-secret
+                key: token
+                optional: true
+    
+    # Autoscaling
+    minReplicas: 1
+    maxReplicas: 3
+    scaleTarget: 10  # Target concurrent requests per replica
+    scaleMetric: concurrency
+    
+    # Timeout settings
+    timeout: 300
+    
+    # Canary rollout (optional)
+    # canaryTrafficPercent: 20
+    
+  # Transformer (optional - for prompt preprocessing)
+  # transformer:
+  #   containers:
+  #     - name: prompt-transformer
+  #       image: your-repo/prompt-transformer:latest
+---
+# HuggingFace token secret (apply separately with actual token)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: huggingface-secret
+  namespace: serving
+type: Opaque
+stringData:
+  token: "YOUR_HF_TOKEN_HERE"  # Replace with actual token
+---
+# Serving namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: serving
+  labels:
+    istio-injection: enabled
+    app.kubernetes.io/part-of: mlops-platform

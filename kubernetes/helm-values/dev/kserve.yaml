@@ -1,0 +1,105 @@
+# KServe Helm Values
+# Chart: kserve/kserve
+# https://github.com/kserve/kserve/tree/master/charts/kserve
+
+# KServe installation mode
+# - Serverless: Requires Knative (full autoscaling)
+# - RawDeployment: Simpler, no Knative dependency
+kserve:
+  controller:
+    # Use RawDeployment mode for dev (no Knative required)
+    deploymentMode: RawDeployment
+    
+    # Controller resources
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    
+    # Gateway configuration
+    gateway:
+      # Use Istio as ingress
+      ingressGateway: istio-system/istio-ingressgateway
+      localGateway: cluster-local-gateway.istio-system.svc.cluster.local
+      
+    # Default serving runtime
+    defaultRuntime: kserve-vllm
+
+# Model serving defaults
+modelmesh:
+  enabled: false  # Disable ModelMesh, use single-model serving
+
+# Inference service defaults
+inferenceService:
+  # Default resources for predictor containers
+  defaultResources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  
+  # Autoscaling configuration
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetUtilization: 80
+    scaleDownDelay: 300s
+    scaleToZeroEnabled: false  # Keep at least 1 replica for dev
+
+# Storage initializer (downloads models from S3/GCS/HuggingFace)
+storageInitializer:
+  image: kserve/storage-initializer:v0.14.0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# Agent sidecar (for model pulling and health)
+agent:
+  image: kserve/agent:v0.14.0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ServiceMonitor for Prometheus metrics
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitoring
+  interval: 30s
+
+# RBAC
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+  name: kserve-controller
+
+# Pod security
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/part-of: mlops-platform
+
+# Logging
+logging:
+  level: info

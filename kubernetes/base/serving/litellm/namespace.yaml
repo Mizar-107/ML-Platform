@@ -1,0 +1,9 @@
+# LiteLLM Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: litellm
+  labels:
+    istio-injection: enabled
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/part-of: mlops-platform

@@ -1,0 +1,37 @@
+# KServe ArgoCD Application
+# Deploys KServe for serverless model serving
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    - repoURL: https://kserve.github.io/kserve
+      chart: kserve
+      targetRevision: 0.14.0
+      helm:
+        releaseName: kserve
+        valueFiles:
+          - $values/ML-Platform/kubernetes/helm-values/dev/kserve.yaml
+    - repoURL: https://github.com/YOUR_ORG/llm-mlops-platform.git
+      targetRevision: HEAD
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
