@@ -1,0 +1,316 @@
+# MLOps Platform Alerting Rules
+# PrometheusRule for critical alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mlops-alerts
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: prometheus
+spec:
+  groups:
+    # ==========================================================================
+    # Inference / Serving Alerts
+    # ==========================================================================
+    - name: mlops.serving
+      rules:
+        - alert: InferenceHighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(inference_latency_seconds_bucket{namespace="mlops-serving"}[5m])) by (le, model)) > 2
+          for: 5m
+          labels:
+            severity: warning
+            component: serving
+          annotations:
+            summary: "High inference latency for {{ $labels.model }}"
+            description: "P99 latency is {{ $value | humanizeDuration }} (threshold: 2s) for model {{ $labels.model }}"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/inference/high-latency"
+
+        - alert: InferenceCriticalLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(inference_latency_seconds_bucket{namespace="mlops-serving"}[5m])) by (le, model)) > 5
+          for: 5m
+          labels:
+            severity: critical
+            component: serving
+          annotations:
+            summary: "Critical inference latency for {{ $labels.model }}"
+            description: "P99 latency is {{ $value | humanizeDuration }} (threshold: 5s) for model {{ $labels.model }}"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/inference/critical-latency"
+
+        - alert: InferenceHighErrorRate
+          expr: |
+            sum(rate(inference_requests_total{namespace="mlops-serving", status_code=~"5.."}[5m])) by (model)
+            / sum(rate(inference_requests_total{namespace="mlops-serving"}[5m])) by (model) > 0.01
+          for: 5m
+          labels:
+            severity: warning
+            component: serving
+          annotations:
+            summary: "High error rate for {{ $labels.model }}"
+            description: "Error rate is {{ $value | humanizePercentage }} (threshold: 1%) for model {{ $labels.model }}"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/inference/high-error-rate"
+
+        - alert: InferenceCriticalErrorRate
+          expr: |
+            sum(rate(inference_requests_total{namespace="mlops-serving", status_code=~"5.."}[5m])) by (model)
+            / sum(rate(inference_requests_total{namespace="mlops-serving"}[5m])) by (model) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            component: serving
+          annotations:
+            summary: "Critical error rate for {{ $labels.model }}"
+            description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%) for model {{ $labels.model }}"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/inference/critical-error-rate"
+
+        - alert: InferenceServiceDown
+          expr: |
+            up{job=~".*inferenceservice.*"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: serving
+          annotations:
+            summary: "InferenceService {{ $labels.job }} is down"
+            description: "InferenceService {{ $labels.job }} has been down for more than 2 minutes"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/inference/service-down"
+
+        - alert: ModelLoadFailure
+          expr: |
+            increase(model_load_failures_total{namespace="mlops-serving"}[10m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: serving
+          annotations:
+            summary: "Model load failure for {{ $labels.model }}"
+            description: "Model {{ $labels.model }} failed to load"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/inference/model-load-failure"
+
+    # ==========================================================================
+    # GPU Alerts
+    # ==========================================================================
+    - name: mlops.gpu
+      rules:
+        - alert: GPUHighUtilization
+          expr: |
+            nvidia_gpu_utilization_gpu > 0.95
+          for: 10m
+          labels:
+            severity: warning
+            component: gpu
+          annotations:
+            summary: "High GPU utilization on {{ $labels.node }}"
+            description: "GPU {{ $labels.gpu }} on node {{ $labels.node }} has been above 95% utilization for 10 minutes"
+
+        - alert: GPUMemoryNearCapacity
+          expr: |
+            nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            component: gpu
+          annotations:
+            summary: "GPU memory near capacity on {{ $labels.node }}"
+            description: "GPU {{ $labels.gpu }} memory is at {{ $value | humanizePercentage }} on node {{ $labels.node }}"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/gpu/memory-pressure"
+
+        - alert: GPUMemoryCritical
+          expr: |
+            nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.95
+          for: 2m
+          labels:
+            severity: critical
+            component: gpu
+          annotations:
+            summary: "GPU memory critical on {{ $labels.node }}"
+            description: "GPU {{ $labels.gpu }} memory is at {{ $value | humanizePercentage }} on node {{ $labels.node }}. OOM likely imminent."
+            runbook_url: "https://docs.llm-mlops.io/runbooks/gpu/memory-critical"
+
+        - alert: GPUTemperatureHigh
+          expr: |
+            nvidia_gpu_temperature_celsius > 80
+          for: 5m
+          labels:
+            severity: warning
+            component: gpu
+          annotations:
+            summary: "GPU temperature high on {{ $labels.node }}"
+            description: "GPU {{ $labels.gpu }} temperature is {{ $value }}°C on node {{ $labels.node }}"
+
+    # ==========================================================================
+    # Training Alerts
+    # ==========================================================================
+    - name: mlops.training
+      rules:
+        - alert: TrainingJobFailed
+          expr: |
+            increase(kube_job_status_failed{namespace="mlops-training"}[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: training
+          annotations:
+            summary: "Training job {{ $labels.job_name }} failed"
+            description: "Training job {{ $labels.job_name }} in namespace {{ $labels.namespace }} has failed"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/training/job-failure"
+
+        - alert: TrainingJobStuck
+          expr: |
+            kube_job_status_active{namespace="mlops-training"} == 1
+            and changes(kube_job_status_active{namespace="mlops-training"}[1h]) == 0
+          for: 2h
+          labels:
+            severity: warning
+            component: training
+          annotations:
+            summary: "Training job {{ $labels.job_name }} appears stuck"
+            description: "Training job {{ $labels.job_name }} has been running for over 2 hours without status change"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/training/job-stuck"
+
+        - alert: TrainingLossNotDecreasing
+          expr: |
+            increase(training_loss{namespace="mlops-training"}[1h]) > 0
+          for: 2h
+          labels:
+            severity: warning
+            component: training
+          annotations:
+            summary: "Training loss not decreasing for {{ $labels.job_name }}"
+            description: "Training loss has not decreased for job {{ $labels.job_name }} in the last 2 hours"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/training/loss-plateau"
+
+        - alert: CheckpointMissing
+          expr: |
+            time() - training_last_checkpoint_timestamp{namespace="mlops-training"} > 3600
+          for: 10m
+          labels:
+            severity: warning
+            component: training
+          annotations:
+            summary: "No checkpoint saved for {{ $labels.job_name }}"
+            description: "Last checkpoint for job {{ $labels.job_name }} was saved {{ $value | humanizeDuration }} ago"
+
+    # ==========================================================================
+    # Platform Component Alerts
+    # ==========================================================================
+    - name: mlops.platform
+      rules:
+        - alert: MLflowDown
+          expr: |
+            up{job="mlflow"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: mlflow
+          annotations:
+            summary: "MLflow server is down"
+            description: "MLflow tracking server has been down for more than 5 minutes"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/platform/mlflow-down"
+
+        - alert: KubeflowPipelinesDown
+          expr: |
+            up{job="ml-pipeline"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: kubeflow
+          annotations:
+            summary: "Kubeflow Pipelines is down"
+            description: "Kubeflow Pipelines service has been down for more than 5 minutes"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/platform/kfp-down"
+
+        - alert: MilvusDown
+          expr: |
+            up{job="milvus"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: milvus
+          annotations:
+            summary: "Milvus vector database is down"
+            description: "Milvus has been down for more than 5 minutes. Vector search unavailable."
+            runbook_url: "https://docs.llm-mlops.io/runbooks/platform/milvus-down"
+
+        - alert: RayClusterUnhealthy
+          expr: |
+            ray_cluster_active_nodes < ray_cluster_desired_nodes
+          for: 10m
+          labels:
+            severity: warning
+            component: ray
+          annotations:
+            summary: "Ray cluster is unhealthy"
+            description: "Ray cluster has {{ $value }} active nodes but {{ $labels.desired_nodes }} desired"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/platform/ray-unhealthy"
+
+        - alert: LiteLLMDown
+          expr: |
+            up{job="litellm"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: litellm
+          annotations:
+            summary: "LiteLLM gateway is down"
+            description: "LiteLLM API gateway has been down for more than 5 minutes"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/platform/litellm-down"
+
+    # ==========================================================================
+    # Pipeline Alerts
+    # ==========================================================================
+    - name: mlops.pipelines
+      rules:
+        - alert: PipelineRunFailed
+          expr: |
+            increase(kfp_run_status{status="Failed"}[10m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: pipelines
+          annotations:
+            summary: "Pipeline run failed: {{ $labels.run_name }}"
+            description: "Pipeline {{ $labels.pipeline_name }} run {{ $labels.run_name }} has failed"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/pipelines/run-failure"
+
+        - alert: PipelineRunTooLong
+          expr: |
+            kfp_run_duration_seconds{status="Running"} > 14400
+          for: 30m
+          labels:
+            severity: warning
+            component: pipelines
+          annotations:
+            summary: "Pipeline run taking too long: {{ $labels.run_name }}"
+            description: "Pipeline run {{ $labels.run_name }} has been running for {{ $value | humanizeDuration }}"
+
+    # ==========================================================================
+    # Storage Alerts
+    # ==========================================================================
+    - name: mlops.storage
+      rules:
+        - alert: PVCNearCapacity
+          expr: |
+            kubelet_volume_stats_used_bytes{namespace=~"mlops-.*"}
+            / kubelet_volume_stats_capacity_bytes{namespace=~"mlops-.*"} > 0.85
+          for: 10m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} near capacity"
+            description: "PVC {{ $labels.persistentvolumeclaim }} in {{ $labels.namespace }} is {{ $value | humanizePercentage }} full"
+            runbook_url: "https://docs.llm-mlops.io/runbooks/storage/pvc-capacity"
+
+        - alert: S3AccessErrors
+          expr: |
+            increase(s3_request_errors_total{namespace=~"mlops-.*"}[5m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "S3 access errors in {{ $labels.namespace }}"
+            description: "{{ $value }} S3 request errors in the last 5 minutes"
